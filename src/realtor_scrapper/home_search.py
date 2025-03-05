@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import json
 import math
 import re
+from dataclasses_json import dataclass_json
 import requests
 from bs4 import BeautifulSoup as BS
 
@@ -68,7 +69,7 @@ class RealtorSearchURLBuilder:
     def url(self):
         return self.__final_url
 
-
+@dataclass_json
 @dataclass
 class RealtorProperty:
     price: int
