@@ -82,7 +82,7 @@ class RealtorProperty:
     sold_price: int = None
 
 
-class ResultsPageIterator:
+class RealtorSearchResultsIterator:
     __headers = {
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36'
     }
@@ -150,7 +150,7 @@ class RealtorProperties:
         beds: tuple[int, int] = None,
         baths: tuple[int, int] = None,
         listing_status: str = None
-    ) -> ResultsPageIterator:
+    ) -> RealtorSearchResultsIterator:
         urlbuilder = RealtorSearchURLBuilder().location(location)
         if price_range:
             urlbuilder.price_range(*price_range)
@@ -163,5 +163,5 @@ class RealtorProperties:
         if listing_status:
             urlbuilder.listing_status(listing_status)
 
-        return ResultsPageIterator(urlbuilder)
+        return RealtorSearchResultsIterator(urlbuilder)
         
