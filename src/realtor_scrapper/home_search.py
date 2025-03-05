@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 import json
 import math
+from pprint import pprint
 import re
 from dataclasses_json import dataclass_json
 import requests
@@ -139,6 +140,27 @@ class RealtorSearchResultsIterator:
             )
 
         return results
+    
+
+class RealtorPropertyPage:
+    def __init__(self, content: str):
+        self.bs = BS(content, 'html.parser')
+
+    def __get_key_facts(self):
+        result: dict = {}
+        key_facts = self.bs.find(attrs={'data-testid': 'key-facts'})
+        listitems = key_facts.find_all('li')
+        for li in listitems:
+            label = li.select_one('.listing-key-fact-item-label').next.text
+            value = li.select_one('.listing-key-fact-item-value').text
+            result.update({label: value})
+        
+        return result
+
+    def parse(self):
+        key_facts = self.__get_key_facts()
+        return key_facts
+
 
 class RealtorProperties:
 
