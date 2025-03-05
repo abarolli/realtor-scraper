@@ -75,12 +75,14 @@ class RealtorSearchURLBuilder:
 class RealtorProperty:
     price: int
     address: dict[str, str]
+    url: str
     baths: float = None
     beds: float = None
     lot_sqft: int = None
     sqft: int = None
     sold_date: str = None
     sold_price: int = None
+    key_facts: dict[str, str] = None
 
 
 class RealtorSearchResultsIterator:
