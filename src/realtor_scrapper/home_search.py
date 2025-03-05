@@ -171,6 +171,12 @@ class RealtorSearchResultsIterator:
     
     
     def __get_seo_linking_properties(self, bs: BS):
+        '''
+        Returns a list of properties similar to `__get_properties_and_set_total_count`, except these are
+        the seo linking properties so they don't have a lot of the necessary home info. But they appear
+        in the same order as the properties returned from `__get_properties_and_set_total_count` and contain
+        the url to the home on realtor.com so it is necessary for deep searches.
+        '''
         seo_linking_datasrc = bs.find(attrs={'data-testid': "seoLinkingData"})
         seo_linking_data = json.loads(seo_linking_datasrc.text)[1]
         seo_linking_properties = seo_linking_data.get('mainEntity').get('itemListElement')
@@ -194,9 +200,9 @@ class RealtorPropertyPage:
         key_facts = self.bs.find(attrs={'data-testid': 'key-facts'})
         listitems = key_facts.find_all('li')
         for li in listitems:
-            label = li.select_one('.listing-key-fact-item-label').next.text
-            value = li.select_one('.listing-key-fact-item-value').text
-            result.update({label: value})
+            label: str = li.select_one('.listing-key-fact-item-label').next.text
+            value: str = li.select_one('.listing-key-fact-item-value').text
+            result.update({label.lower().replace(' ', '_'): value})
         
         return result
 
