@@ -126,7 +126,7 @@ class RealtorSearchResultsIterator:
                 futures.append(executor.submit(self.__get_home_info, property, property_url, deep_search))
             
             for future in as_completed(futures):
-                address, description, key_facts = future.result()
+                address, description, key_facts, details = future.result()
                 results.append(
                     RealtorProperty(
                         price = property.get('list_price'),
@@ -138,7 +138,8 @@ class RealtorSearchResultsIterator:
                         sqft = description.get('sqft'),
                         sold_date = description.get('sold_date'),
                         sold_price = description.get('sold_price'),
-                        key_facts=key_facts
+                        key_facts = key_facts,
+                        details = details
                     )
                 )
 
@@ -154,8 +155,8 @@ class RealtorSearchResultsIterator:
                 'state': address.get('state_code')
             }
         description = property.get('description')
-        key_facts = self.__fetch_more_details(property_url) if deep_search else None
-        return address, description, key_facts
+        key_facts, details = self.__fetch_more_details(property_url) if deep_search else (None, None)
+        return address, description, key_facts, details
 
 
     def __fetch_more_details(self, property_url: str) -> dict:
@@ -163,8 +164,8 @@ class RealtorSearchResultsIterator:
         property_page = RealtorPropertyPage(res.text)
         try:
             return property_page.parse()
-        except:
-            raise RuntimeError(f'Failed to parse property page at {property_url}')
+        except Exception as e:
+            raise RuntimeError(f'Failed to parse property page at {property_url}').with_traceback(e.__traceback__)
     
     
     def __get_seo_linking_properties(self, bs: BS):
