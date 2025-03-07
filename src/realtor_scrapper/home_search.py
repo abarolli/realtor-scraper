@@ -199,22 +199,22 @@ class RealtorPropertyPage:
         details: dict = self.__get_details_from_dom()
         
         interior_details = RealtorPropertyDetailsInterior(
-            features=details.get('Interior Features').get('text'),
-            heating_cooling=details.get('Heating and Cooling').get('text')
+            features=details.get('Interior Features'),
+            heating_cooling=details.get('Heating and Cooling')
         )
         
         exterior_details = RealtorPropertyDetailsExterior(
-            features=details.get('Home Features').get('text'),
-            lot_features=details.get('Exterior and Lot Features').get('text'),
-            pool_spa=details.get('Pool and Spa').get('text'),
-            garage_parking=details.get('Garage and Parking').get('text')
+            features=details.get('Home Features'),
+            lot_features=details.get('Exterior and Lot Features'),
+            pool_spa=details.get('Pool and Spa'),
+            garage_parking=details.get('Garage and Parking')
         )
 
         community_details = RealtorPropertyDetailsCommunity(
-            hoa=details.get('Homeowners Association').get('text')
+            hoa=details.get('Homeowners Association')
         )
 
-        construction_details_str: str = '\n'.join(details.get('Building and Construction').get('text'))
+        construction_details_str: str = '\n'.join(details.get('Building and Construction'))
         stories_count_pattern: re.Pattern = re.compile(r'Building Total Stories: (\d+)')
         architectural_style_pattern: re.Pattern = re.compile(r'Architectural Style: (.*)')
         stories_match = stories_count_pattern.search(construction_details_str)
@@ -236,7 +236,7 @@ class RealtorPropertyPage:
     def __get_details_from_dom(self) -> dict:
         datasrc = self.bs.find(id='__NEXT_DATA__')
         data = json.loads(datasrc.text)
-        return {detail.get('category'): detail for detail in data \
+        return {detail.get('category'): detail.get('text') for detail in data \
                                                             .get('props') \
                                                             .get('pageProps') \
                                                             .get('initialReduxState') \
