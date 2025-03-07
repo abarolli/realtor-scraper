@@ -1,13 +1,21 @@
 
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
-from dataclasses import dataclass
 import json
 import math
 from pprint import pprint
 import re
-from dataclasses_json import dataclass_json
 import requests
 from bs4 import BeautifulSoup as BS
+
+from realtor_dataclasses import (
+    RealtorProperty,
+    RealtorPropertyDetails,
+    RealtorPropertyDetailsCommunity,
+    RealtorPropertyDetailsConstruction,
+    RealtorPropertyDetailsExterior,
+    RealtorPropertyDetailsInterior
+)
+
 
 class RealtorSearchURLBuilder:
     __base_url: str = 'https://www.realtor.com/realestateandhomes-search'
@@ -71,20 +79,6 @@ class RealtorSearchURLBuilder:
     def url(self):
         return self.__final_url
 
-
-@dataclass_json
-@dataclass
-class RealtorProperty:
-    price: int
-    address: dict[str, str]
-    url: str
-    baths: float = None
-    beds: float = None
-    lot_sqft: int = None
-    sqft: int = None
-    sold_date: str = None
-    sold_price: int = None
-    key_facts: dict[str, str] = None
 
 
 class RealtorSearchResultsIterator:
