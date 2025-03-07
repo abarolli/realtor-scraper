@@ -161,7 +161,10 @@ class RealtorSearchResultsIterator:
     def __fetch_more_details(self, property_url: str) -> dict:
         res = requests.get(property_url, headers=self.__headers)
         property_page = RealtorPropertyPage(res.text)
-        return property_page.parse()
+        try:
+            return property_page.parse()
+        except:
+            raise RuntimeError(f'Failed to parse property page at {property_url}')
     
     
     def __get_seo_linking_properties(self, bs: BS):
@@ -189,6 +192,57 @@ class RealtorPropertyPage:
     def __init__(self, content: str):
         self.bs = BS(content, 'html.parser')
 
+    
+    def get_property_details(self):
+        
+        details: dict = self.__get_details_from_dom()
+        
+        interior_details = RealtorPropertyDetailsInterior(
+            features=details.get('Interior Features').get('text'),
+            heating_cooling=details.get('Heating and Cooling').get('text')
+        )
+        
+        exterior_details = RealtorPropertyDetailsExterior(
+            features=details.get('Home Features').get('text'),
+            lot_features=details.get('Exterior and Lot Features').get('text'),
+            pool_spa=details.get('Pool and Spa').get('text'),
+            garage_parking=details.get('Garage and Parking').get('text')
+        )
+
+        community_details = RealtorPropertyDetailsCommunity(
+            hoa=details.get('Homeowners Association').get('text')
+        )
+
+        construction_details_str: str = '\n'.join(details.get('Building and Construction').get('text'))
+        stories_count_pattern: re.Pattern = re.compile(r'Building Total Stories: (\d+)')
+        architectural_style_pattern: re.Pattern = re.compile(r'Architectural Style: (.*)')
+        stories_match = stories_count_pattern.search(construction_details_str)
+        architecture_match = architectural_style_pattern.search(construction_details_str)
+
+        construction_details = RealtorPropertyDetailsConstruction(
+            stories=stories_match.group(1) if stories_match else None,
+            architectural_style=architecture_match.group(1) if architecture_match else None
+        )
+
+        return RealtorPropertyDetails(
+            interior_details,
+            exterior_details,
+            community_details,
+            construction_details
+        )
+
+    
+    def __get_details_from_dom(self) -> dict:
+        datasrc = self.bs.find(id='__NEXT_DATA__')
+        data = json.loads(datasrc.text)
+        return {detail.get('category'): detail for detail in data \
+                                                            .get('props') \
+                                                            .get('pageProps') \
+                                                            .get('initialReduxState') \
+                                                            .get('propertyDetails') \
+                                                            .get('details')}
+
+
     def __get_key_facts(self):
         result: dict = {}
         key_facts = self.bs.find(attrs={'data-testid': 'key-facts'})
@@ -200,9 +254,11 @@ class RealtorPropertyPage:
         
         return result
 
+
     def parse(self):
         key_facts = self.__get_key_facts()
-        return key_facts
+        property_details = self.get_property_details()
+        return key_facts, property_details
 
 
 class RealtorProperties:
