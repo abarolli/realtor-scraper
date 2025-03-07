@@ -2,21 +2,6 @@ from dataclasses import dataclass
 from dataclasses_json import dataclass_json
 
 
-@dataclass_json
-@dataclass
-class RealtorProperty:
-    price: int
-    address: dict[str, str]
-    url: str
-    baths: float = None
-    beds: float = None
-    lot_sqft: int = None
-    sqft: int = None
-    sold_date: str = None
-    sold_price: int = None
-    key_facts: dict[str, str] = None
-
-
 dataclass_json
 @dataclass
 class RealtorPropertyDetailsInterior:
@@ -53,3 +38,19 @@ class RealtorPropertyDetails:
     exterior: RealtorPropertyDetailsExterior
     community: RealtorPropertyDetailsCommunity
     construction: RealtorPropertyDetailsConstruction
+
+
+@dataclass_json
+@dataclass
+class RealtorProperty:
+    price: int
+    address: dict[str, str]
+    url: str
+    baths: float | None = None
+    beds: float | None = None
+    lot_sqft: int | None = None
+    sqft: int | None = None
+    sold_date: str | None = None
+    sold_price: int | None = None
+    key_facts: dict[str, str] | None = None
+    details: RealtorPropertyDetails | None = None
