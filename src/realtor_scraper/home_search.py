@@ -5,7 +5,6 @@ import math
 from pprint import pprint
 import re
 import requests
-from bs4 import BeautifulSoup as BS
 
 from realtor_dataclasses import (
     RealtorProperty,
@@ -15,7 +14,8 @@ from realtor_dataclasses import (
     RealtorPropertyDetailsExterior,
     RealtorPropertyDetailsInterior
 )
-from scrapers import RealtorPropertyPage
+
+from scrapers import Scraper, RealtorPropertyPage, RealtorSearchResultsPage
 
 
 class RealtorSearchURLBuilder:
@@ -106,8 +106,9 @@ class RealtorSearchResultsIterator:
 
     def __init__(self, urlbuilder: RealtorSearchURLBuilder):
         self.__urlbuilder = urlbuilder
-        self.__total_results_count = -1
-        self.__results = self.__fetch_homes(deep_search=True)
+        page_results, total_results_count = self.__fetch_homes(scraper=RealtorSearchResultsPage())
+        self.__results = page_results
+        self.__total_results_count = total_results_count
 
 
     def has_next_page(self):
@@ -125,84 +126,14 @@ class RealtorSearchResultsIterator:
 
     def next_page(self):
         self.__urlbuilder.next_page()
-        self.__results = self.__fetch_homes(deep_search=True)
+        page_results, total_results_count = self.__fetch_homes(scraper=RealtorSearchResultsPage())
+        self.__results = page_results
+        self.__total_results_count = total_results_count
 
 
-    def __fetch_homes(self, deep_search: bool = False):
+    def __fetch_homes(self, scraper: Scraper):
         res = requests.get(self.__urlbuilder.url, headers=self.__headers)
-        bs = BS(res.text, "html.parser")
-
-        seo_linking_properties = self.__get_seo_linking_properties(bs)
-        main_properties = self.__get_properties_and_set_total_count(bs)
-        results: list[RealtorProperty] = []
-        with ThreadPoolExecutor(max_workers=10) as executor:
-            futures: list[Future] = []
-            for n in range(len(main_properties)):
-                property = main_properties[n]
-                property_url = seo_linking_properties[n].get('url')
-                futures.append(executor.submit(self.__get_home_info, property, property_url, deep_search))
-            
-            for future in as_completed(futures):
-                address, description, key_facts, details = future.result()
-                results.append(
-                    RealtorProperty(
-                        price = property.get('list_price'),
-                        url = property_url,
-                        address = address,
-                        baths = float(description.get('baths_consolidated')) if description.get('baths_consolidated') else None,
-                        beds = description.get('beds'),
-                        lot_sqft = description.get('lot_sqft'),
-                        sqft = description.get('sqft'),
-                        sold_date = description.get('sold_date'),
-                        sold_price = description.get('sold_price'),
-                        key_facts = key_facts,
-                        details = details
-                    )
-                )
-
-        return results
-
-
-    def __get_home_info(self, property, property_url, deep_search):
-        address = property.get('location').get('address')
-        address = {
-                'street': address.get('line'),
-                'city': address.get('city'),
-                'zip': address.get('postal_code'),
-                'state': address.get('state_code')
-            }
-        description = property.get('description')
-        key_facts, details = self.__fetch_more_details(property_url) if deep_search else (None, None)
-        return address, description, key_facts, details
-
-
-    def __fetch_more_details(self, property_url: str) -> dict:
-        res = requests.get(property_url, headers=self.__headers)
-        property_page = RealtorPropertyPage(res.text)
-        try:
-            return property_page.parse()
-        except Exception as e:
-            raise RuntimeError(f'Failed to parse property page at {property_url}').with_traceback(e.__traceback__)
-    
-    
-    def __get_seo_linking_properties(self, bs: BS):
-        '''
-        Returns a list of properties similar to `__get_properties_and_set_total_count`, except these are
-        the seo linking properties so they don't have a lot of the necessary home info. But they appear
-        in the same order as the properties returned from `__get_properties_and_set_total_count` and contain
-        the url to the home on realtor.com so it is necessary for deep searches.
-        '''
-        seo_linking_datasrc = bs.find(attrs={'data-testid': "seoLinkingData"})
-        seo_linking_data = json.loads(seo_linking_datasrc.text)[1]
-        seo_linking_properties = seo_linking_data.get('mainEntity').get('itemListElement')
-        return seo_linking_properties
-
-
-    def __get_properties_and_set_total_count(self, bs: BS):
-        datasrc = bs.find(id='__NEXT_DATA__')
-        data = json.loads(datasrc.text)
-        self.__total_results_count = data.get('props').get('pageProps').get('totalProperties')
-        return data.get('props').get('pageProps').get('properties')
+        return scraper.scrape(res.text)
 
 
 class RealtorProperties:
