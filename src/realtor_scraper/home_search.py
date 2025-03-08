@@ -1,21 +1,10 @@
 
-from concurrent.futures import Future, ThreadPoolExecutor, as_completed
-import json
 import math
 from pprint import pprint
 import re
 import requests
 
-from realtor_dataclasses import (
-    RealtorProperty,
-    RealtorPropertyDetails,
-    RealtorPropertyDetailsCommunity,
-    RealtorPropertyDetailsConstruction,
-    RealtorPropertyDetailsExterior,
-    RealtorPropertyDetailsInterior
-)
-
-from scrapers import Scraper, RealtorPropertyPage, RealtorSearchResultsPage
+from scrapers import Scraper, RealtorSearchResultsPage
 
 
 class RealtorSearchURLBuilder:
