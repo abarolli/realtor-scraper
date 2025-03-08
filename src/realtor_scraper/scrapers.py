@@ -6,7 +6,7 @@ from typing import TypeAlias
 from bs4 import BeautifulSoup as BS
 import requests
 
-import realtor_dataclasses as __rdc
+import realtor_dataclasses as _rdc
 
 
 class Scraper(ABC):
@@ -16,6 +16,7 @@ class Scraper(ABC):
 
 
 class RealtorPropertyPage(Scraper):
+
 
     __HomeFeatures: TypeAlias = dict[str, list[str]]
 
@@ -28,7 +29,7 @@ class RealtorPropertyPage(Scraper):
         
         details: RealtorPropertyPage.__HomeFeatures = self.__get_details_from_dom(bs)
         
-        return __rdc.RealtorPropertyDetails(
+        return _rdc.RealtorPropertyDetails(
             self.__get_interior_details(details),
             self.__get_exterior_details(details),
             self.__get_community_details(details),
@@ -36,27 +37,27 @@ class RealtorPropertyPage(Scraper):
         )
 
 
-    def __get_construction_details(self, details: 'RealtorPropertyPage.__HomeFeatures'):
-        construction_details_str: str = '\n'.join(details.get('Building and Construction'))
+    def __get_construction_details(self, details: __HomeFeatures):
+        construction_details_str: str = '\n'.join(details.get('Building and Construction', []))
         stories_count_pattern: re.Pattern = re.compile(r'Building Total Stories: (\d+)')
         architectural_style_pattern: re.Pattern = re.compile(r'Architectural Style: (.*)')
         stories_match = stories_count_pattern.search(construction_details_str)
         architecture_match = architectural_style_pattern.search(construction_details_str)
 
-        return __rdc.RealtorPropertyDetailsConstruction(
+        return _rdc.RealtorPropertyDetailsConstruction(
             stories=stories_match.group(1) if stories_match else None,
             architectural_style=architecture_match.group(1) if architecture_match else None
         )
 
 
-    def __get_community_details(self, details: 'RealtorPropertyPage.__HomeFeatures'):
-        return __rdc.RealtorPropertyDetailsCommunity(
+    def __get_community_details(self, details: __HomeFeatures):
+        return _rdc.RealtorPropertyDetailsCommunity(
             hoa=details.get('Homeowners Association')
         )
         
 
-    def __get_exterior_details(self, details: 'RealtorPropertyPage.__HomeFeatures'):
-        return __rdc.RealtorPropertyDetailsExterior(
+    def __get_exterior_details(self, details: __HomeFeatures):
+        return _rdc.RealtorPropertyDetailsExterior(
             features=details.get('Home Features'),
             lot_features=details.get('Exterior and Lot Features'),
             pool_spa=details.get('Pool and Spa'),
@@ -64,14 +65,14 @@ class RealtorPropertyPage(Scraper):
         )
 
 
-    def __get_interior_details(self, details: 'RealtorPropertyPage.__HomeFeatures'):
-        return __rdc.RealtorPropertyDetailsInterior(
+    def __get_interior_details(self, details: __HomeFeatures):
+        return _rdc.RealtorPropertyDetailsInterior(
             features=details.get('Interior Features'),
             heating_cooling=details.get('Heating and Cooling')
         )
 
     
-    def __get_details_from_dom(self, bs: BS) -> 'RealtorPropertyPage.__HomeFeatures':
+    def __get_details_from_dom(self, bs: BS) -> __HomeFeatures:
         datasrc = bs.find(id='__NEXT_DATA__')
         data = json.loads(datasrc.text)
         return {detail.get('category'): detail.get('text') for detail in data \
@@ -108,16 +109,16 @@ class RealtorSearchResultsPage(Scraper):
 
 
     def scrape(self, content: str):
-        return self.__get_properties_and_total_count(
+        return self.__get_details(
             BS(content, 'html.parser'),
             deep_scraper=RealtorPropertyPage()
         )
 
 
-    def __get_properties_and_total_count(self, bs: BS, deep_scraper: Scraper | None = None) -> list[__rdc.RealtorProperty]:
+    def __get_details(self, bs: BS, deep_scraper: Scraper | None = None) -> list[_rdc.RealtorProperty]:
         seo_linking_properties = self.__get_seo_linking_properties(bs)
         main_properties, total_results_count = self.__get_properties_and_total_count(bs)
-        results: list[__rdc.RealtorProperty] = []
+        results: list[_rdc.RealtorProperty] = []
         with ThreadPoolExecutor(max_workers=10) as executor:
             futures: list[Future] = []
             for n in range(len(main_properties)):
@@ -128,7 +129,7 @@ class RealtorSearchResultsPage(Scraper):
             for future in as_completed(futures):
                 address, description, details = future.result()
                 results.append(
-                    __rdc.RealtorProperty(
+                    _rdc.RealtorProperty(
                         price = property.get('list_price'),
                         url = property_url,
                         address = address,
@@ -154,7 +155,7 @@ class RealtorSearchResultsPage(Scraper):
                 'state': address.get('state_code')
             }
         description = property.get('description')
-        details = self.__fetch_more_details(property_url) if deep_scraper else None
+        details = self.__fetch_more_details(property_url, deep_scraper) if deep_scraper else None
         return address, description, details
 
 
