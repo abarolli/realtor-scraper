@@ -95,9 +95,7 @@ class RealtorSearchResultsIterator:
 
     def __init__(self, urlbuilder: RealtorSearchURLBuilder):
         self.__urlbuilder = urlbuilder
-        page_results, total_results_count = self.__fetch_homes(scraper=RealtorSearchResultsPage())
-        self.__results = page_results
-        self.__total_results_count = total_results_count
+        self.__update_results()
 
 
     def has_next_page(self):
@@ -115,6 +113,10 @@ class RealtorSearchResultsIterator:
 
     def next_page(self):
         self.__urlbuilder.next_page()
+        self.__update_results()
+
+
+    def __update_results(self):
         page_results, total_results_count = self.__fetch_homes(scraper=RealtorSearchResultsPage())
         self.__results = page_results
         self.__total_results_count = total_results_count
